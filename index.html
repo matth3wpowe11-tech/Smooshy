@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smooshy</title>
+    <style>
+        :root {
+            --blue-tile: #b3cde3;
+            --pink-tile: #fbb4ae;
+            --tile-text: #111111;
+            --bg-color: #fcfcfc;
+            --border-color: #e0e0e0;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px 0 20px;
+            gap: 15px;
+        }
+
+        .left-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-grow: 1;
+        }
+
+        h2 {
+            margin: 0;
+            color: #444;
+            font-size: 18px;
+            white-space: nowrap;
+        }
+
+        #dict-drop-zone {
+            flex-grow: 1;
+            max-width: 280px;
+            height: 34px;
+            border: 2px dashed #b0bec5;
+            border-radius: 6px;
+            background: #f7f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #555;
+            font-weight: bold;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        #dict-drop-zone.dragover {
+            background: #e3f2fd;
+            border-color: #2196f3;
+            color: #0d47a1;
+        }
+        #dict-drop-zone.loaded {
+            background: #e8f5e9;
+            border-color: #4caf50;
+            color: #1b5e20;
+            border-style: solid;
+        }
+
+        .right-buttons {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .status-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 70px;
+            flex-shrink: 0;
+        }
+
+        .status-indicator {
+            font-size: 24px;
+            height: 28px;
+            line-height: 28px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .valid { color: #2ec4b6; }
+        .invalid { color: #e63946; }
+
+        .score-badge {
+            font-size: 11px;
+            font-weight: bold;
+            color: #666;
+            background: #eaeded;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-top: 2px;
+            min-width: 35px;
+            text-align: center;
+            visibility: hidden;
+        }
+        .score-badge.show { visibility: visible; }
+
+        .btn {
+            font-size: 18px;
+            font-weight: bold;
+            width: 38px;
+            height: 38px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.85; }
+
+        .btn-add { background-color: #a1dbcd; color: #111; }
+        .btn-remove { background-color: #fbc4c4; color: #111; }
+        
+        .btn-action {
+            color: white;
+            font-size: 14px;
+            padding: 0 15px;
+            width: auto;
+            height: 34px;
+            flex-shrink: 0;
+        }
+        .btn-reset { background-color: #4a5568; }
+        .btn-clear-dict { background-color: #718096; }
+        .btn-help { background-color: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; }
+
+        .top-fixed-container {
+            flex-shrink: 0;
+            background: #ffffff;
+            border-bottom: 2px solid var(--border-color);
+            padding: 10px 20px 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+            z-index: 10;
+        }
+
+        #top-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-content: flex-start;
+            min-height: 60px;
+            background: #fafafa;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .prompt-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .prompt-text {
+            font-size: 15px;
+            font-weight: bold;
+            color: #475569;
+        }
+
+        #prompt-input {
+            font-size: 16px;
+            padding: 6px 12px;
+            border: 2px solid #cbd5e1;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            width: 160px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+        #prompt-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .scrollable-workspace {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .row-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 14px;
+            gap: 12px;
+        }
+
+        .lower-row {
+            flex-grow: 1;
+            background: #f7f9fa;
+            border: 2px dashed #cfd8dc;
+            border-radius: 8px;
+            min-height: 60px;
+            display: flex;
+            flex-wrap: wrap;
+            padding: 8px;
+            gap: 8px;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+
+        .tile {
+            width: 46px;
+            height: 46px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--tile-text);
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.08);
+            position: relative;
+            box-sizing: border-box;
+        }
+        .tile:active { cursor: grabbing; }
+
+        .tile.blue { background-color: var(--blue-tile); }
+        .tile.pink { background-color: var(--pink-tile); }
+
+        .tile.selected {
+            outline: 3px solid #ffb703;
+            box-shadow: 0 0 8px rgba(255,183,3,0.5);
+        }
+        
+        .tile-placeholder {
+            width: 46px;
+            height: 46px;
+            border: 2px dashed #b0bec5;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        /* Explainer Modal Container Layer */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Fixed outer structural wrapper */
+        .modal-content {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            max-width: 600px; /* Expanded slightly for nicer paragraph layout */
+            width: 90%;
+            max-height: 85vh; /* Enforces boundaries on mobile and desktop viewports */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column; /* Stacks header above the scrolling body data */
+            box-sizing: border-box;
+        }
+
+        /* Pinned top title section */
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-shrink: 0; /* Prevents header compression during layout shrinking */
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        .modal-header h3 { margin: 0; font-size: 20px; color: #1e293b; }
+        
+        .close-modal {
+            font-size: 24px; font-weight: bold; color: #94a3b8; cursor: pointer;
+            line-height: 1;
+        }
+        .close-modal:hover { color: #475569; }
+
+        /* SCROLL FIX: Isolated body container styling with custom scrolling */
+        .modal-body {
+            overflow-y: auto; /* Adds structural dynamic vertical tracking rules */
+            flex-grow: 1;    /* Allows text workspace layout adjustments */
+            padding-right: 8px; /* Adds breathing room for the browser's scrollbar */
+        }
+        .modal-body p { margin: 0 0 14px 0; font-size: 14px; color: #334155; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+    <div class="top-fixed-container">
+        <div class="header-controls">
+            <div class="left-controls">
+                <h2>Letter Pool</h2>
+                <div id="dict-drop-zone">Drag & Drop dictionary.txt Here</div>
+            </div>
+            <div class="right-buttons">
+                <button class="btn btn-action btn-help" id="help-btn">?</button>
+                <button class="btn btn-action btn-clear-dict" id="clear-dict-btn">Clear Dictionary</button>
+                <button class="btn btn-action btn-reset" id="reset-btn">Reset Board</button>
+            </div>
+        </div>
+        <div id="top-section"></div>
+    </div>
+
+    <div class="scrollable-workspace">
+        <h2>Workspace</h2>
+        <div id="lower-section"></div>
+    </div>
+
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Smooshy - The Smush companion app</h3>
+                <span class="close-modal" id="close-modal-btn">&times;</span>
+            </div>
+            <div class="modal-body">
+			    <p><strong>About Smooshy:</strong> Smooshy is a companion app to the online game, Smush, created by John Green and hosted at <a href="https://www.hankgreen.com/smush/" target="_blank" style="color: #3b82f6; font-weight: bold; text-decoration: underline;">https://www.hankgreen.com/smush/</a>.  The purpose of Smooshy is to help Smush players to arrange and rearrange different combinations of Smush letters to try to come up with a combination of words to achieve the "clean plate" achievement within Smush.  Smooshy has no official affiliation with Smush, John Green, or Hank Green.</p>
+                <p><strong>How Smooshy works:</strong></p>
+				<p><strong>1. Input Letters:</strong> Start by typing 9 unique letters into the Letter Pool prompt using the letters provided in the Smush letter grid. Make sure to enter the 'golden' letter last.</p>
+                <p><strong>2. Tile Generation:</strong> As soon as the 9th letter is added, the pool will generate 5 blue tiles for each of your first 8 letters, and 1 special pink tile for the 9th 'golden' letter.</p>
+                <p><strong>3. Objective:</strong> Drag tiles from the Letter Pool into the Workspace to form valid words.  Each word should contain at least one pink tile.  Each row contains one word.  If you use up all of the blue tiles, use at least one pink tile in every row, and all rows contain valid words, you achieve a "clean plate".</p>
+				<p><strong>4. Dragging Tiles to the Workspace:</strong> Dragging a blue tile from the Letter Pool into the Workspace removes that tile from the Letter Pool.  Dragging the pink tile from the Letter Pool into the Workspace creates a new copy of that tile.  You may create as many copies of the pink tile as you need.</p>
+				<p><strong>5. Dragging Tiles from the Workspace:</strong> Dragging a blue tile from the Workspace to the Letter Pool returns that tile to the Letter Pool.  Dragging a pink tile from the Workspace to the Letter Pool deletes that copy of the pink tile from the Workspace.</p>
+				<p><strong>6. Dragging Tiles within the Workspace:</strong> Tiles can be dragged within the Workspace to change their order within a row or to move them from one row to another.</p>
+				<p><strong>7. Validating Words:</strong> If a dictionary.txt file has been loaded, Smooshy will use it to validate whether the word in a given row is valid according to the loaded dictionary file. You can load an official word database such as the <a href="https://github.com/scrabblewords/scrabblewords/blob/main/words/North-American/NSWL2023.txt" target="_blank" style="color: #3b82f6; font-weight: bold; text-decoration: underline;">Official North American Scrabble Dictionary</a> to use as your dictionary file. Open the link, click the "Download raw file" button on that page, rename the saved file on your computer to 'dictionary.txt', and drag and drop it into the designated zone at the top of the Smooshy app.  Smooshy will cache the dictionary file and use it to validate words as you enter them in the Workspace.</p>
+				<p><strong>8. Points:</strong> Smooshy will calculate the basic Scrabble point value of each word you assemble in the Workspace.  It will not calculate any bonus points that Smush may award you for using certain 'spicy' letters or for 'smushing' any of the letters you used.  It will not calculate points for any bonus achievements.</p>
+    <script>
+        const topSection = document.getElementById('top-section');
+        const lowerSection = document.getElementById('lower-section');
+        const resetBtn = document.getElementById('reset-btn');
+        const clearDictBtn = document.getElementById('clear-dict-btn');
+        const dictDropZone = document.getElementById('dict-drop-zone');
+        const helpBtn = document.getElementById('help-btn');
+        const helpModal = document.getElementById('help-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        
+        let selectedTiles = new Set();
+        let draggedTileElement = null;
+        let isPinkSource = false;
+        let scrabbleWords = new Set();
+        let chosenLettersString = "";
+
+        const letterScores = {
+            'A': 1, 'E': 1, 'I': 1, 'O': 1, 'U': 1, 'L': 1, 'N': 1, 'R': 1, 'S': 1, 'T': 1,
+            'D': 2, 'G': 2,
+            'B': 3, 'C': 3, 'M': 3, 'P': 3,
+            'F': 4, 'H': 4, 'V': 4, 'W': 4, 'Y': 4,
+            'K': 5,
+            'J': 8, 'X': 8,
+            'Q': 10, 'Z': 10
+        };
+
+        const coreWords = ["WON", "WONDER", "WONDERFUL", "CAT", "DOG", "THE", "AND", "YOU", "THAT"];
+
+        // IndexedDB Configuration
+        const DB_NAME = "SmooshyDictDB";
+        const DB_VERSION = 1;
+        const STORE_NAME = "wordsStore";
+        let db = null;
+
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+            const database = e.target.result;
+            if (!database.objectStoreNames.contains(STORE_NAME)) {
+                database.createObjectStore(STORE_NAME);
+            }
+        };
+        request.onsuccess = (e) => {
+            db = e.target.result;
+            loadDictionaryFromCache();
+        };
+        request.onerror = () => {
+            useDefaultSeedWords();
+        };
+
+        function useDefaultSeedWords() {
+            scrabbleWords.clear();
+            coreWords.forEach(w => scrabbleWords.add(w));
+            dictDropZone.textContent = "Drag & Drop dictionary.txt Here";
+            dictDropZone.className = "";
+            validateAllRows();
+        }
+
+        function loadDictionaryFromCache() {
+            if (!db) return;
+            dictDropZone.textContent = "Loading cached vocabulary...";
+            
+            const transaction = db.transaction([STORE_NAME], "readonly");
+            const store = transaction.objectStore(STORE_NAME);
+            const getAllKeysRequest = store.getAllKeys();
+
+            getAllKeysRequest.onsuccess = () => {
+                const keys = getAllKeysRequest.result;
+                if (keys && keys.length > 0) {
+                    scrabbleWords.clear();
+                    keys.forEach(k => scrabbleWords.add(k));
+                    dictDropZone.textContent = `✓ Cached: ${scrabbleWords.size.toLocaleString()} Words`;
+                    dictDropZone.className = "loaded";
+                    validateAllRows();
+                } else {
+                    useDefaultSeedWords();
+                }
+            };
+            getAllKeysRequest.onerror = () => useDefaultSeedWords();
+        }
+
+        function saveDictionaryToCache() {
+            if (!db || scrabbleWords.size === 0) return;
+            const transaction = db.transaction([STORE_NAME], "readwrite");
+            const store = transaction.objectStore(STORE_NAME);
+            store.clear().onsuccess = () => {
+                scrabbleWords.forEach(word => {
+                    store.put(true, word);
+                });
+            };
+        }
+
+        clearDictBtn.addEventListener('click', () => {
+            if (!db) return;
+            if (confirm("Are you sure you want to unload your local dictionary? Smooshy will revert to its baseline seed words.")) {
+                const transaction = db.transaction([STORE_NAME], "readwrite");
+                transaction.objectStore(STORE_NAME).clear().onsuccess = () => {
+                    useDefaultSeedWords();
+                };
+            }
+        });
+
+        helpBtn.addEventListener('click', () => helpModal.style.display = "flex");
+        closeModalBtn.addEventListener('click', () => helpModal.style.display = "none");
+        window.addEventListener('click', (e) => { if(e.target === helpModal) helpModal.style.display = "none"; });
+        dictDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault(); e.stopPropagation(); dictDropZone.classList.add('dragover');
+        });
+        dictDropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault(); e.stopPropagation(); dictDropZone.classList.remove('dragover');
+        });
+        dictDropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); e.stopPropagation(); dictDropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) processDictionaryFile(files);
+        });
+        dictDropZone.addEventListener('click', () => {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file'; fileInput.accept = '.txt';
+            fileInput.onchange = (e) => { if (e.target.files.length > 0) processDictionaryFile(e.target.files); };
+            fileInput.click();
+        });
+
+        function processDictionaryFile(files) {
+            dictDropZone.textContent = "Reading file...";
+            const reader = new FileReader();
+            
+            reader.onload = (event) => {
+                scrabbleWords.clear();
+                const text = event.target.result;
+                
+                text.split(/\r?\n/).forEach(line => {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine) return;
+                    
+                    const firstSpaceIndex = trimmedLine.indexOf(' ');
+                    const wordPart = firstSpaceIndex !== -1 ? trimmedLine.substring(0, firstSpaceIndex) : trimmedLine;
+                    
+                    const cleanWord = wordPart.trim().toUpperCase();
+                    if(cleanWord && cleanWord.match(/^[A-Z]+$/)) scrabbleWords.add(cleanWord);
+                });
+                
+                dictDropZone.textContent = `✓ Loaded ${scrabbleWords.size.toLocaleString()} Words`;
+                dictDropZone.className = "loaded";
+                saveDictionaryToCache();
+                validateAllRows();
+            };
+
+            reader.onerror = () => {
+                dictDropZone.textContent = "Error reading file";
+                dictDropZone.className = "";
+            };
+
+            // CRITICAL FIX: Extract index 0 from the FileList object array
+            reader.readAsText(files[0]);
+        }
+
+        init();
+
+        function init() {
+            topSection.innerHTML = '';
+            lowerSection.innerHTML = '';
+            clearSelection();
+            chosenLettersString = "";
+
+            const promptWrapper = document.createElement('div');
+            promptWrapper.classList.add('prompt-container');
+
+            const textLabel = document.createElement('span');
+            textLabel.classList.add('prompt-text');
+            textLabel.textContent = "Enter 9 unique letters to generate pool:";
+
+            const inputField = document.createElement('input');
+            inputField.type = 'text';
+            inputField.id = 'prompt-input';
+            inputField.maxLength = 9;
+            inputField.autocomplete = 'off';
+
+            inputField.addEventListener('input', (e) => {
+                let value = inputField.value.toUpperCase().replace(/[^A-Z]/g, '');
+                let uniqueChars = "";
+                for (let i = 0; i < value.length; i++) {
+                    if (!uniqueChars.includes(value[i])) {
+                        uniqueChars += value[i];
+                    }
+                }
+                inputField.value = uniqueChars;
+
+                if (uniqueChars.length === 9) {
+                    chosenLettersString = uniqueChars;
+                    setTimeout(() => generatePoolTiles(uniqueChars), 150);
+                }
+            });
+
+            promptWrapper.appendChild(textLabel);
+            promptWrapper.appendChild(inputField);
+            topSection.appendChild(promptWrapper);
+
+            createWorkspaceRow();
+            setupSectionDragEvents(topSection, true);
+            setTimeout(() => inputField.focus(), 50);
+        }
+        function generatePoolTiles(letterString) {
+            topSection.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const letter = letterString[i];
+                for (let k = 0; k < 5; k++) {
+                    createAndAppendTile('blue', letter);
+                }
+            }
+            const pinkLetter = letterString[8];
+            const pinkTile = createTile('pink', pinkLetter);
+            pinkTile.dataset.isSource = "true";
+            topSection.appendChild(pinkTile);
+            validateAllRows();
+        }
+
+        function createAndAppendTile(type, letter) {
+            const tile = createTile(type, letter);
+            topSection.appendChild(tile);
+        }
+
+        function createTile(type, letter = '') {
+            const tile = document.createElement('div');
+            tile.classList.add('tile', type);
+            tile.draggable = true;
+            tile.textContent = letter;
+            tile.dataset.id = Math.random().toString(36).substr(2, 9);
+            tile.dataset.type = type;
+
+            tile.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleSelect(tile);
+            });
+
+            tile.addEventListener('contextmenu', e => e.preventDefault());
+
+            tile.addEventListener('dragstart', (e) => {
+                draggedTileElement = tile;
+                isPinkSource = tile.classList.contains('pink') && tile.parentElement === topSection;
+                e.dataTransfer.setData('text/plain', tile.dataset.id);
+                setTimeout(() => tile.style.opacity = '0.3', 0);
+            });
+
+            tile.addEventListener('dragend', () => {
+                draggedTileElement = null;
+                isPinkSource = false;
+                tile.style.opacity = '1';
+                removePlaceholders();
+                validateAllRows();
+            });
+
+            return tile;
+        }
+
+        function toggleSelect(tile) {
+            if (selectedTiles.has(tile)) {
+                selectedTiles.delete(tile);
+                tile.classList.remove('selected');
+            } else {
+                selectedTiles.add(tile);
+                tile.classList.add('selected');
+            }
+        }
+
+        function clearSelection() {
+            selectedTiles.forEach(tile => tile.classList.remove('selected'));
+            selectedTiles.clear();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (selectedTiles.size === 0) return;
+            
+            if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
+                const targetLetter = e.key.toUpperCase();
+                const tilesToProcess = Array.from(selectedTiles);
+                clearSelection();
+
+                tilesToProcess.forEach(tile => {
+                    if (tile.dataset.type === 'blue') {
+                        const oldLetter = tile.textContent.trim();
+                        if (oldLetter && oldLetter !== targetLetter) {
+                            const allTiles = document.querySelectorAll('.tile.blue');
+                            allTiles.forEach(t => {
+                                if (t.textContent.trim() === oldLetter) t.textContent = targetLetter;
+                            });
+                        } else {
+                            tile.textContent = targetLetter;
+                        }
+                    } else if (tile.dataset.type === 'pink') {
+                        tile.textContent = targetLetter;
+                    }
+                });
+
+                validateAllRows();
+            } else if (e.key === "Backspace" || e.key === "Delete") {
+                selectedTiles.forEach(tile => {
+                    if (tile.dataset.type === 'blue' || tile.dataset.type === 'pink') tile.textContent = '';
+                });
+                clearSelection();
+                validateAllRows();
+            }
+        });
+        function createWorkspaceRow() {
+            const container = document.createElement('div');
+            container.classList.add('row-container');
+
+            const statusContainer = document.createElement('div');
+            statusContainer.classList.add('status-container');
+
+            const status = document.createElement('div');
+            status.classList.add('status-indicator');
+            
+            const scoreBadge = document.createElement('div');
+            scoreBadge.classList.add('score-badge');
+
+            statusContainer.appendChild(status);
+            statusContainer.appendChild(scoreBadge);
+
+            const row = document.createElement('div');
+            row.classList.add('lower-row');
+            setupSectionDragEvents(row, false);
+
+            const addBtn = document.createElement('button');
+            addBtn.classList.add('btn', 'btn-add');
+            addBtn.textContent = '+';
+            addBtn.addEventListener('click', () => createWorkspaceRow());
+
+            const removeBtn = document.createElement('button');
+            removeBtn.classList.add('btn', 'btn-remove');
+            removeBtn.textContent = '-';
+            removeBtn.addEventListener('click', () => {
+                const tiles = Array.from(row.querySelectorAll('.tile'));
+                tiles.forEach(tile => {
+                    if (tile.dataset.type === 'blue') topSection.appendChild(tile);
+                });
+                container.remove();
+                if (lowerSection.children.length === 0) createWorkspaceRow();
+                validateAllRows();
+            });
+
+            container.appendChild(statusContainer);
+            container.appendChild(row);
+            container.appendChild(addBtn);
+            container.appendChild(removeBtn);
+            lowerSection.appendChild(container);
+            validateRow(row, status, scoreBadge);
+        }
+
+        function setupSectionDragEvents(element, isTopSection) {
+            element.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (!draggedTileElement) return;
+
+                const targetTile = getDragTargetTile(element, e.clientX);
+                removePlaceholders();
+
+                const placeholder = document.createElement('div');
+                placeholder.classList.add('tile-placeholder');
+
+                if (targetTile) {
+                    element.insertBefore(placeholder, targetTile);
+                } else {
+                    element.appendChild(placeholder);
+                }
+            });
+
+            element.addEventListener('dragleave', (e) => { if (e.target === element) removePlaceholders(); });
+
+            element.addEventListener('drop', (e) => {
+                e.preventDefault();
+                removePlaceholders();
+                if (!draggedTileElement) return;
+
+                const targetTile = getDragTargetTile(element, e.clientX);
+
+                if (isTopSection) {
+                    if (draggedTileElement.dataset.type === 'blue') {
+                        insertOrAppend(topSection, draggedTileElement, targetTile);
+                    } else if (draggedTileElement.dataset.type === 'pink' && !isPinkSource) {
+                        draggedTileElement.remove();
+                    }
+                } else {
+                    if (isPinkSource) {
+                        const pinkCopy = createTile('pink', draggedTileElement.textContent);
+                        insertOrAppend(element, pinkCopy, targetTile);
+                    } else {
+                        insertOrAppend(element, draggedTileElement, targetTile);
+                    }
+                }
+                
+                setTimeout(() => { validateAllRows(); checkCleanPlateAchievement(); }, 30);
+            });
+        }
+
+        function insertOrAppend(parent, element, referenceElement) {
+            if (referenceElement) parent.insertBefore(element, referenceElement);
+            else parent.appendChild(element);
+        }
+
+        function removePlaceholders() { document.querySelectorAll('.tile-placeholder').forEach(p => p.remove()); }
+
+        function getDragTargetTile(container, x) {
+            const targetableTiles = Array.from(container.querySelectorAll('.tile:not(.tile-placeholder)'));
+            return targetableTiles.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = x - box.left - box.width / 2;
+                if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+                else return closest;
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function validateRow(rowElement, statusElement, scoreElement) {
+            const tiles = Array.from(rowElement.querySelectorAll('.tile'));
+            let builtWord = "";
+            let hasEmptyTile = false;
+            let currentScore = 0;
+
+            tiles.forEach(tile => {
+                const char = tile.textContent.replace(/\s+/g, '').toUpperCase();
+                if (!char) hasEmptyTile = true;
+                else {
+                    builtWord += char;
+                    currentScore += (letterScores[char] || 0);
+                }
+            });
+
+            if (builtWord.length === 0) {
+                statusElement.textContent = '';
+                statusElement.className = 'status-indicator';
+                scoreElement.className = 'score-badge';
+                return;
+            }
+
+            if (!hasEmptyTile && scrabbleWords.has(builtWord)) {
+                statusElement.textContent = '✓';
+                statusElement.className = 'status-indicator valid';
+                scoreElement.textContent = `pts: ${currentScore}`;
+                scoreElement.className = 'score-badge show';
+            } else {
+                statusElement.textContent = '✕';
+                statusElement.className = 'status-indicator invalid';
+                scoreElement.className = 'score-badge'; 
+            }
+        }
+
+        function validateAllRows() {
+            const containers = document.querySelectorAll('.row-container');
+            containers.forEach(container => {
+                const row = container.querySelector('.lower-row');
+                const status = container.querySelector('.status-indicator');
+                const score = container.querySelector('.score-badge');
+                if (row && status && score) validateRow(row, status, score);
+            });
+        }
+
+        function checkCleanPlateAchievement() {
+            if (chosenLettersString.length < 9) return;
+
+            const blueTilesInPool = topSection.querySelectorAll('.tile.blue').length;
+            if (blueTilesInPool > 0) return;
+
+            const rows = document.querySelectorAll('.lower-row');
+            if (rows.length === 0) return;
+
+            let allValid = true;
+            let allHavePink = true;
+            let totalTilesInWorkspace = 0;
+
+            rows.forEach(row => {
+                const statusIndicator = row.parentElement.querySelector('.status-indicator');
+                if (!statusIndicator || !statusIndicator.classList.contains('valid')) {
+                    allValid = false;
+                }
+                const pinkTilesInRow = row.querySelectorAll('.tile.pink').length;
+                if (pinkTilesInRow === 0) {
+                    allHavePink = false;
+                }
+                totalTilesInWorkspace += row.querySelectorAll('.tile').length;
+            });
+
+            if (totalTilesInWorkspace === 0) return;
+
+            if (allValid && allHavePink) {
+                setTimeout(() => {
+                    alert("✨ Clean Plate! ✨\n\nCongratulations! You have successfully used all blue tiles, included the pink tile in every word, and achieved a perfect workspace board!");
+                }, 100);
+            }
+        }
+
+        resetBtn.addEventListener('click', () => {
+            if (confirm("Are you sure you want to reset the board? All your layout combinations will be cleared.")) init();
+        });
+
+        document.addEventListener('click', (e) => { if (!e.target.classList.contains('tile')) clearSelection(); });
+    </script>
+</body>
+</html>
