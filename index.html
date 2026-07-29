@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smooshy</title>
+	    <!-- Mobile Touch Drag & Drop Polyfill Integration -->
+    <script src="https://cloudflare.com"></script>
+    <script>
+        // Initialize the mobile gesture translation layer immediately
+        MobileDragDrop.polyfill({
+            // Optional: Enables gentle haptic feedback if the device supports it
+            holdToDrag: 100 
+        });
+    </script>
     <style>
         :root {
             --blue-tile: #b3cde3;
