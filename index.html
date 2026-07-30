@@ -4,17 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smooshy</title>
-	    <!-- Mobile Touch Drag & Drop Polyfill Integration -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mobile-drag-drop/2.3.0/index.min.js"></script>
-    <script>
-        // Initialize the mobile gesture translation layer immediately
-        MobileDragDrop.polyfill({
-            // Optional: Enables gentle haptic feedback if the device supports it
-            holdToDrag: 100 
-        });
-    </script>
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mobile-drag-drop/2.3.0/index.min.css">
-  <style>
+    <style>
         :root {
             --blue-tile: #b3cde3;
             --pink-tile: #fbb4ae;
@@ -224,25 +214,23 @@
             border: 2px dashed #cfd8dc;
             border-radius: 8px;
             min-height: 54px;
-            display: grid;
-            grid-auto-flow: column;
-            grid-auto-columns: minmax(38px, 46px);
+            display: flex; /* REVERTED TO FLEX: Restores flawless native drag-and-drop mechanics */
+            flex-wrap: nowrap; /* Forces all tiles to stay strictly on one line */
             padding: 6px;
             gap: 4px;
             align-items: center;
-            overflow-x: auto;
+            
+            /* SWIPE CONTAINER: Natively scrolls row horizontally on mobile if tiles overflow */
+            overflow-x: auto; 
             overflow-y: hidden;
             scrollbar-width: thin;
-            -webkit-overflow-scrolling: touch;
+            -webkit-overflow-scrolling: touch; 
         }
 
         .tile {
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            min-width: 38px;
-            min-height: 38px;
-            max-width: 46px;
-            max-height: 46px;
+            /* FIXED MOBILE SIZE: Ensures ideal touch dimensions that never compress or warp */
+            width: 44px;
+            height: 44px;
             border-radius: 6px;
             display: flex;
             align-items: center;
@@ -255,8 +243,12 @@
             border: 1px solid rgba(0,0,0,0.08);
             position: relative;
             box-sizing: border-box;
-            flex-shrink: 0;
-			touch-action: none;
+            
+            /* CRITICAL: Protects the tile from being squeezed narrow by long words on mobile */
+            flex-shrink: 0; 
+            
+            /* Standard touchscreen parameters */
+            touch-action: none;
             -webkit-user-drag: element;
             user-drag: element;
         }
@@ -271,12 +263,12 @@
         }
         
         .tile-placeholder {
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            max-width: 46px;
+            width: 44px;
+            height: 44px;
             border: 2px dashed #b0bec5;
             border-radius: 6px;
             box-sizing: border-box;
+            flex-shrink: 0;
         }
 
         .modal {
